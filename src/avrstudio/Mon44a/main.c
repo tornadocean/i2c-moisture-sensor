@@ -107,7 +107,7 @@ volatile uint16_t light = 0;
 
 #define PCINT1 1
 
-static inline stopLightMeaseurement() {
+static inline void stopLightMeaseurement() {
     GIMSK &= ~_BV(PCIE0);
     TCCR1B = 0;
     PCMSK0 &= ~_BV(PCINT1);

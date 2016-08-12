@@ -6,7 +6,7 @@
 //#include <avr/wdt.h>
 #include "sleep.h"
 #include "thermistor.h"
-#include "twi.h"
+#include "usiTwiSlave.h"
 
 #define FIRMWARE_VERSION 0x23 //2.3
 
@@ -55,7 +55,7 @@ inline static ledToggle() {
 static inline void adcSetup() {
     ADCSRA = _BV(ADEN) | _BV(ADPS2) | _BV(ADPS0);
     ADCSRA |= _BV(ADIE);
-    ADMUXB = 0;
+    ADMUX = 0;
 }
 
 void inline sleepWhileADC() {
@@ -68,7 +68,7 @@ ISR(ADC_vect) {
 }
 
 uint16_t adcReadChannel(uint8_t channel) {
-    ADMUXA = channel;
+    ADMUX = channel;
     ADCSRA |= _BV(ADSC);
     sleepWhileADC();
 //    loop_until_bit_is_clear(ADCSRA, ADSC);
@@ -166,12 +166,12 @@ static inline uint8_t isLightMeasurementInProgress() {
 
 inline static void wdt_disable() {
     MCUSR = 0;
-    CCP = 0xD8;
+    //CCP = 0xD8;
     WDTCSR &= ~_BV(WDE);
 }
 
 inline static void wdt_enable() {
-    CCP = 0xD8;
+    //CCP = 0xD8;
     WDTCSR = _BV(WDE);
 }
 
@@ -182,22 +182,22 @@ int temperature = 0;
 
 static inline loopSensorMode() {
     while(1) {
-        if(twiDataInReceiveBuffer()) {
-            uint8_t usiRx = twiReceiveByte();
+        if(usiTwiDataInReceiveBuffer()) {
+            uint8_t usiRx = usiTwiReceiveByte();
 
             if(TWI_GET_CAPACITANCE == usiRx) {
-                twiTransmitByte(currCapacitance >> 8);
-                twiTransmitByte(currCapacitance &0x00FF);
+                usiTwiTransmitByte(currCapacitance >> 8);
+                usiTwiTransmitByte(currCapacitance &0x00FF);
                 currCapacitance = getCapacitance();
             } else if(TWI_SET_ADDRESS == usiRx) {
-                uint8_t newAddress = twiReceiveByte();
-                if(twiIsValidAddress(newAddress)) {
+                uint8_t newAddress = usiTwiReceiveByte();
+                if(usiTwiIsValidAddress(newAddress)) {
                     eeprom_write_byte((uint8_t*)0x01, newAddress);
                 }
 
             } else if(TWI_GET_ADDRESS == usiRx) {
                 uint8_t newAddress = eeprom_read_byte((uint8_t*) 0x01);
-                twiTransmitByte(newAddress);
+                usiTwiTransmitByte(newAddress);
 
             } else if(TWI_MEASURE_LIGHT == usiRx) {
                 if(!isLightMeasurementInProgress()) {
@@ -208,25 +208,25 @@ static inline loopSensorMode() {
                 GIMSK &= ~_BV(PCIE0);//disable pin change interrupts
                 TCCR1B = 0;          //stop timer
                 
-                twiTransmitByte(lightCounter >> 8);
-                twiTransmitByte(lightCounter & 0x00FF);
+                usiTwiTransmitByte(lightCounter >> 8);
+                usiTwiTransmitByte(lightCounter & 0x00FF);
 
                 GIMSK |= _BV(PCIE0); 
                 TCCR1B = _BV(CS10) | _BV(CS11);                 //start timer1 with prescaler clk/64
             } else if(TWI_GET_TEMPERATURE == usiRx) {
-                twiTransmitByte(temperature >> 8);
-                twiTransmitByte(temperature & 0x00FF);
+                usiTwiTransmitByte(temperature >> 8);
+                usiTwiTransmitByte(temperature & 0x00FF);
                 temperature = getTemperature();
             } else if(TWI_RESET == usiRx) {
                 reset();
 
             } else if(TWI_GET_VERSION == usiRx) {
-                twiTransmitByte(FIRMWARE_VERSION);
+                usiTwiTransmitByte(FIRMWARE_VERSION);
             } else if(TWI_SLEEP == usiRx) {
                 set_sleep_mode(SLEEP_MODE_PWR_DOWN);
                 sleep_mode();
             } else if(TWI_GET_BUSY == usiRx) {
-                twiTransmitByte(isCapacitanceMeasurementInProgress() || 
+                usiTwiTransmitByte(isCapacitanceMeasurementInProgress() || 
                                 isTemperatureMeasurementInProgress() || 
                                 isLightMeasurementInProgress());
             }
@@ -235,9 +235,10 @@ static inline loopSensorMode() {
 }
 
 static inline void setupPowerSaving() {
-    PRR = _BV(PRTIM0) | _BV(PRTIM1) | _BV(PRTIM2) | _BV(PRSPI) | _BV(PRUSART0) | _BV(PRUSART1); //shut down everything we don't use
-    ACSR0A = _BV(ACD0); //disable comparators
-    ACSR1A = _BV(ACD1);
+    PRR = _BV(PRTIM0) | _BV(PRTIM1) | _BV(PRUSI); //shut down everything we don't use
+    //ACSR0A = _BV(ACD0); //disable comparators
+    //ACSR1A = _BV(ACD1);
+	ACSR = _BV(ACD);
     DIDR0 = _BV(ADC3D) | _BV(ADC5D) | _BV(ADC7D);//disable input buffers for analog pins
 }
 
@@ -245,7 +246,7 @@ int main (void) {
     wdt_disable();
 
     uint8_t address = eeprom_read_byte(I2C_ADDRESS_EEPROM_LOCATION);
-    if(!twiIsValidAddress(address)) {
+    if(!usiTwiIsValidAddress(address)) {
         address = I2C_ADDRESS_DEFAULT;
     }
 
@@ -263,6 +264,7 @@ int main (void) {
     currCapacitance = getCapacitance();
     ledOff();
 
-    twiSetup(address);    
+    //twiSetup(address);    
+	usiTwiSlaveInit(address);
     loopSensorMode();
 }

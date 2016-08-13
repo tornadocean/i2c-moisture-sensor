@@ -1,5 +1,6 @@
 #include <inttypes.h>
 #include <avr/io.h>
+#define F_CPU 2500000UL  // 20 MHz
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <avr/eeprom.h>
@@ -48,7 +49,7 @@ inline static void ledOff() {
     LED_PORT &= ~_BV(LED_A);
 }
 
-inline static ledToggle() {
+inline static void ledToggle() {
     LED_PORT ^= _BV(LED_A);
 }
 
@@ -157,6 +158,8 @@ static inline uint16_t getLight() {
 
     set_sleep_mode(SLEEP_MODE_IDLE);
     sleep_mode();
+
+	return 0;
 }
 
 
@@ -179,10 +182,12 @@ inline static void wdt_enable() {
 
 uint16_t currCapacitance = 0;
 int temperature = 0;
-
-static inline loopSensorMode() {
+int nLed = 0;
+static inline void loopSensorMode() {
     while(1) {
-        if(usiTwiDataInReceiveBuffer()) {
+		
+        if(usiTwiDataInReceiveBuffer()) 
+		{
             uint8_t usiRx = usiTwiReceiveByte();
 
             if(TWI_GET_CAPACITANCE == usiRx) {
@@ -231,11 +236,25 @@ static inline loopSensorMode() {
                                 isLightMeasurementInProgress());
             }
         }
+		else
+		{
+			//if(++nLed % 2 == 0)
+			//{
+				//ledOn();
+				//_delay_ms(200);
+			//}
+			//else
+			//{
+				//ledOff();
+				//_delay_ms(200);
+			//}
+		}
     }
+
 }
 
 static inline void setupPowerSaving() {
-    PRR = _BV(PRTIM0) | _BV(PRTIM1) | _BV(PRUSI); //shut down everything we don't use
+    PRR = _BV(PRTIM0) | _BV(PRTIM1); //shut down everything we don't use
     //ACSR0A = _BV(ACD0); //disable comparators
     //ACSR1A = _BV(ACD1);
 	ACSR = _BV(ACD);
@@ -250,21 +269,24 @@ int main (void) {
         address = I2C_ADDRESS_DEFAULT;
     }
 
-    setupPowerSaving();
+
+	CLKPR = _BV(CLKPCE);
+	CLKPR = _BV(CLKPS1)| _BV(CLKPS0); //clock speed = clk/8 = 2.5Mhz
+
+    //setupPowerSaving();
     ledSetup();
     adcSetup();
     sei();
 
     ledOn();
-    _delay_ms(100);
+    _delay_ms(500);
     temperature = getTemperature();
     currCapacitance = getCapacitance();
     //we do it two times because the first reading after reset might be off...
     temperature = getTemperature();
     currCapacitance = getCapacitance();
     ledOff();
-
-    //twiSetup(address);    
+   
 	usiTwiSlaveInit(address);
     loopSensorMode();
 }

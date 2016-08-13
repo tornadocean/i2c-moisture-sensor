@@ -1,6 +1,6 @@
 #include <inttypes.h>
 #include <avr/io.h>
-#define F_CPU 2500000UL  // 20 MHz
+#define F_CPU 20000000UL  // 20 MHz
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <avr/eeprom.h>
@@ -126,7 +126,7 @@ ISR(PCINT0_vect) {
     stopLightMeaseurement();
 }
 
-ISR(TIMER1_OVF_vect) {
+ISR(TIM1_OVF_vect) {
     lightCounter = 65535;
     light = lightCounter;
     stopLightMeaseurement();
@@ -149,7 +149,8 @@ static inline uint16_t getLight() {
     
     TCNT1 = 0;
     TCCR1A = 0;
-    TCCR1B = _BV(CS10) | _BV(CS11);                 //start timer1 with prescaler clk/64
+    //TCCR1B = _BV(CS10) | _BV(CS11);                 //start timer1 with prescaler clk/64
+	TCCR1B = _BV(CS10) | _BV(CS12);                 //start timer1 with prescaler clk/1024
     
     PCMSK0 |= _BV(PCINT1);              //enable pin change interrupt on LED_K
     GIMSK |= _BV(PCIE0); 
@@ -206,18 +207,20 @@ static inline void loopSensorMode() {
 
             } else if(TWI_MEASURE_LIGHT == usiRx) {
                 if(!isLightMeasurementInProgress()) {
-                    getLight();
+					getLight();
                 }
 
             } else if(TWI_GET_LIGHT == usiRx) {
                 GIMSK &= ~_BV(PCIE0);//disable pin change interrupts
                 TCCR1B = 0;          //stop timer
                 
-                usiTwiTransmitByte(lightCounter >> 8);
-                usiTwiTransmitByte(lightCounter & 0x00FF);
+                usiTwiTransmitByte(light >> 8);
+                usiTwiTransmitByte(light & 0x00FF);
 
-                GIMSK |= _BV(PCIE0); 
-                TCCR1B = _BV(CS10) | _BV(CS11);                 //start timer1 with prescaler clk/64
+                //TCCR1B = _BV(CS10) | _BV(CS11);                 //start timer1 with prescaler clk/64
+				TCCR1B = _BV(CS10) | _BV(CS12);                 //start timer1 with prescaler clk/1024
+				GIMSK |= _BV(PCIE0); 
+
             } else if(TWI_GET_TEMPERATURE == usiRx) {
                 usiTwiTransmitByte(temperature >> 8);
                 usiTwiTransmitByte(temperature & 0x00FF);
@@ -270,10 +273,10 @@ int main (void) {
     }
 
 
-	CLKPR = _BV(CLKPCE);
-	CLKPR = _BV(CLKPS1)| _BV(CLKPS0); //clock speed = clk/8 = 2.5Mhz
+	//CLKPR = _BV(CLKPCE);
+	//CLKPR = _BV(CLKPS1)| _BV(CLKPS0); //clock speed = clk/8 = 2.5Mhz
 
-    //setupPowerSaving();
+    setupPowerSaving();
     ledSetup();
     adcSetup();
     sei();

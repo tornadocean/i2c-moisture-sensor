@@ -83,7 +83,7 @@ void loop()
 
       Serial.print("Light: ");
       writeI2CRegister8bit(address, 3); //request light measurement 
-      delay(1000);                   //this can take a while
+      delay(500);                   //this can take a while
       Serial.println(readI2CRegister16bit(address, 4)); //read light register
       writeI2CRegister8bit(address, 3);
 

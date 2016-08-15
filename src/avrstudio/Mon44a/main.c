@@ -1,6 +1,6 @@
 #include <inttypes.h>
 #include <avr/io.h>
-#define F_CPU 20000000UL  // 20 MHz
+//#define F_CPU 20000000UL  // 20 MHz
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <avr/eeprom.h>
@@ -9,7 +9,7 @@
 #include "thermistor.h"
 #include "usiTwiSlave.h"
 
-#define FIRMWARE_VERSION 0x23 //2.3
+#define FIRMWARE_VERSION 0x31 //Vernum 3.1
 
 #define LED_K PA1
 #define LED_A PA0

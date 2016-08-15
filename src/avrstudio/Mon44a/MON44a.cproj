@@ -149,9 +149,6 @@
     <Compile Include="main.c">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="sleep.h">
-      <SubType>compile</SubType>
-    </Compile>
     <Compile Include="thermistor.c">
       <SubType>compile</SubType>
     </Compile>

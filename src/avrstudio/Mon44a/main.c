@@ -5,7 +5,7 @@
 #include <avr/interrupt.h>
 #include <avr/eeprom.h>
 //#include <avr/wdt.h>
-#include "sleep.h"
+#include <avr/sleep.h>
 #include "thermistor.h"
 #include "usiTwiSlave.h"
 
@@ -145,7 +145,7 @@ static inline uint16_t getLight() {
     LED_PORT &= ~_BV(LED_A);
     _delay_us(100);
     LED_DDR &= ~_BV(LED_K);                //make Cathode input
-    LED_PORT &= ~(_BV(LED_A) | _BV(LED_K));//disable pullups
+    //LED_PORT &= ~(_BV(LED_A) | _BV(LED_K));//disable pullups
     
     TCNT1 = 0;
     TCCR1A = 0;

@@ -81,7 +81,7 @@
   <avrgcc.compiler.symbols.DefSymbols>
     <ListValues>
       <Value>NDEBUG</Value>
-      <Value>F_CPU=20000000</Value>
+      <Value>F_CPU=12000000</Value>
     </ListValues>
   </avrgcc.compiler.symbols.DefSymbols>
   <avrgcc.compiler.directories.IncludePaths>
@@ -120,7 +120,7 @@
   <avrgcc.compiler.symbols.DefSymbols>
     <ListValues>
       <Value>DEBUG</Value>
-      <Value>F_CPU=20000000</Value>
+      <Value>F_CPU=12000000</Value>
     </ListValues>
   </avrgcc.compiler.symbols.DefSymbols>
   <avrgcc.compiler.directories.IncludePaths>
